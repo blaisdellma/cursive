@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use std::cmp::Ord;
 use std::collections::VecDeque;
 use std::str::FromStr;
-use std::sync::{Mutex,RwLock};
+use std::sync::{Mutex, RwLock};
 
 /// Saves all log records in a global deque.
 ///
@@ -29,14 +29,6 @@ use std::sync::{Mutex,RwLock};
 /// logger::set_ext_filter_level(LevelFilter::Debug);
 /// logger::init();
 /// ```
-///
-/// Set log queue size.
-///
-/// ```
-/// # use cursive_core::*;
-/// logger::set_log_size(10_000);
-/// logger::init();
-/// ```
 
 pub struct CursiveLogger;
 
@@ -45,8 +37,6 @@ lazy_static! {
     static ref INT_FILTER_LEVEL: RwLock<log::LevelFilter> = RwLock::new(log::LevelFilter::Trace);
     // Log filter level for log messages from sources outside of cursive
     static ref EXT_FILTER_LEVEL: RwLock<log::LevelFilter> = RwLock::new(log::LevelFilter::Trace);
-    // Size of log queue
-    static ref LOG_SIZE: RwLock<usize> = RwLock::new(1_000);
 }
 
 /// Sets the internal log filter level.
@@ -75,13 +65,6 @@ pub fn set_filter_levels_with_env() {
             set_int_filter_level(filter_level);
         }
     }
-}
-
-/// Sets the size of the log queue prior to initialization.
-/// Has no effect after calling `init()` or `get_logger()`.
-/// Use `reserve_logs()` instead to increase log size during use.
-pub fn set_log_size(log_size: usize) {
-    *LOG_SIZE.write().unwrap() = log_size;
 }
 
 /// A log record.
@@ -141,7 +124,10 @@ impl log::Log for CursiveLogger {
 /// Use a [`DebugView`](crate::views::DebugView) to see the logs, or use
 /// [`Cursive::toggle_debug_console()`](crate::Cursive::toggle_debug_console()).
 pub fn init() {
-    reserve_logs(*LOG_SIZE.read().unwrap());
+    // ensure that the log queue capacity has been set
+    if LOGS.lock().unwrap().capacity() == 0 {
+        reserve_logs(1_000);
+    }
     log::set_max_level((*INT_FILTER_LEVEL.read().unwrap()).max(*EXT_FILTER_LEVEL.read().unwrap()));
     // This will panic if `set_logger` was already called.
     log::set_logger(&CursiveLogger).unwrap();
@@ -153,7 +139,10 @@ pub fn init() {
 ///
 /// An easier alternative might be to use [`init()`].
 pub fn get_logger() -> CursiveLogger {
-    reserve_logs(*LOG_SIZE.read().unwrap());
+    // ensure that the log queue capacity has been set
+    if LOGS.lock().unwrap().capacity() == 0 {
+        reserve_logs(1_000);
+    }
     CursiveLogger
 }
 
