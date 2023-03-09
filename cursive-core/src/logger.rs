@@ -77,10 +77,11 @@ pub fn set_filter_levels_with_env() {
     }
 }
 
-/// Sets the size of the log queue
+/// Sets the size of the log queue prior to initialization.
+/// Has no effect after calling `init()` or `get_logger()`.
+/// Use `reserve_logs()` instead to increase log size during use.
 pub fn set_log_size(log_size: usize) {
     *LOG_SIZE.write().unwrap() = log_size;
-    reserve_logs(log_size);
 }
 
 /// A log record.
